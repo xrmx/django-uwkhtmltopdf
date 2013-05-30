@@ -20,6 +20,7 @@ setup(
     version=django_uwkhtmltopdf.__version__,
     description='A Django app to generate pdfs from templates using wkhtmltopdf',
     long_description=open(os.path.join(os.path.dirname(__file__), 'README.md')).read(),
+    url="https://github.com/xrmx/django-uwkhtmltopdf",
     license='BSD License',
     platforms=['OS Independent'],
     classifiers=CLASSIFIERS,
