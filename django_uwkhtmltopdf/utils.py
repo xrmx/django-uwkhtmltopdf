@@ -7,6 +7,11 @@ import tempfile
 import StringIO
 import os
 
+try:
+    WKHTMLTOPDF = settings.WKHTMLTOPDF_CMD
+except AttributeError:
+    WKHTMLTOPDF = '/usr/bin/wkhtmltopdf'
+
 def render_to_tmp_file(template_name, context):
     tmpl = get_template(template_name)
     html = tmpl.render(Context(context))
@@ -40,11 +45,6 @@ def generate_pdf(template_name, file_object=None, context=None, header=None, foo
     if footer:
         footer_template = render_to_tmp_file(footer, context)
         opts.extend(['--footer-html', footer_template])
-
-    try:
-        WKHTMLTOPDF = settings.WKHTMLTOPDF_CMD
-    except AttributeError:
-        WKHTMLTOPDF = '/usr/bin/wkhtmltopdf'
 
     cmd = [WKHTMLTOPDF] + opts + ['-', '-']
     pdf_as_string = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(input=html)[0]
