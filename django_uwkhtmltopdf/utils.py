@@ -2,6 +2,7 @@ from django.conf import settings
 from django.template.context import Context
 from django.template.loader import get_template
 from django.http import HttpResponse
+from django.utils.encoding import smart_str
 import subprocess
 import tempfile
 import StringIO
@@ -14,7 +15,7 @@ except AttributeError:
 
 def render_to_tmp_file(template_name, context):
     tmpl = get_template(template_name)
-    html = tmpl.render(Context(context))
+    html = smart_str(tmpl.render(Context(context)))
     # wkhtmltopdf segfaults without .html suffix
     tmp = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
     tmp.write(html)
@@ -36,7 +37,7 @@ def generate_pdf(template_name, file_object=None, context=None, header=None, foo
     if not context:
         context = {}
     tmpl = get_template(template_name)
-    html = tmpl.render(Context(context))
+    html = smart_str(tmpl.render(Context(context)))
 
     opts = []
     if header:
