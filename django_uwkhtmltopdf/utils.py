@@ -26,8 +26,9 @@ def render_to_tmp_file(template_name, context):
 def generate_pdf(template_name, file_object=None, context=None, options=None):
     """
     Uses wkhtmltopdf to render a PDF to the passed file_object, from the
-    given template name. Optionally takes a template name for an header and for a footer
-    to be repeated on each pdf page.
+    given template name. Optionally take an options dictionary which supports
+    only header / footer templates to be repeated on each pdf page, page margins
+    and header / footer spacing.
 
     This returns the passed-in file object, filled with the actual PDF data.
     In case the passed in file object is none, it will return a StringIO instance.
@@ -43,40 +44,29 @@ def generate_pdf(template_name, file_object=None, context=None, options=None):
         options = {}
 
     opts = []
-    if options:
-        if 'header' in options:
-            header_template = render_to_tmp_file(options['header'], context)
-            opts.extend(['--header-html', header_template])
+    files_to_remove = []
+    for opt in options:
+        if opt in ('header-html', 'footer-html'):
+            if opt == 'header-html':
+                header_template = render_to_tmp_file(options[opt], context)
+                opts.extend(['--' + opt, header_template])
+                files_to_remove.append(header_template)
+            elif opt == 'footer-html':
+                footer_template = render_to_tmp_file(options[opt], context)
+                opts.extend(['--' + opt, footer_template])
+                files_to_remove.append(footer_template)
 
-        if 'footer' in options:
-            footer_template = render_to_tmp_file(options['footer'], context)
-            opts.extend(['--footer-html', footer_template])
+        if opt in ('margin-top', 'margin-bottom', 'margin-left', 'margin-right'):
+            opts.extend(['--' + opt , opts[opt]])
 
-        if 'margin-top' in options:
-            opts.extend(['--margin-top', options['margin-top']])
-
-        if 'margin-bottom' in options:
-            opts.extend(['--margin-bottom', options['margin-bottom']])
-
-        if 'margin-left' in options:
-            opts.extend(['--margin-left', options['margin-left']])
-
-        if 'margin-right' in options:
-            opts.extend(['--margin-right', options['margin-right']])
-
-        if 'header-spacing' in options:
-            opts.extend(['--header-spacing', options['header-spacing']])
-
-        if 'footer-spacing' in options:
-            opts.extend(['--footer-spacing', options['footer-spacing']])
+        if opt in ('header-spacing', 'footer-spacing'):
+            opts.extend(['--' + opt, opts[opt]])
 
     cmd = [WKHTMLTOPDF] + opts + ['-', '-']
     pdf_as_string = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(input=html)[0]
 
-    if 'header' in options:
-        os.remove(header_template)
-    if 'footer' in options:
-        os.remove(footer_template)
+    for f in files_to_remove:
+        os.remove(f)
 
     file_object.write(pdf_as_string)
     return file_object
