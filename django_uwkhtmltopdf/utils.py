@@ -57,10 +57,10 @@ def generate_pdf(template_name, file_object=None, context=None, options=None):
                 files_to_remove.append(footer_template)
 
         if opt in ('margin-top', 'margin-bottom', 'margin-left', 'margin-right'):
-            opts.extend(['--' + opt , opts[opt]])
+            opts.extend(['--' + opt , options[opt]])
 
         if opt in ('header-spacing', 'footer-spacing'):
-            opts.extend(['--' + opt, opts[opt]])
+            opts.extend(['--' + opt, options[opt]])
 
     cmd = [WKHTMLTOPDF] + opts + ['-', '-']
     pdf_as_string = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(input=html)[0]
