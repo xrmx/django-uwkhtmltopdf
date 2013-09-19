@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import StringIO
 import os
+from .options import OPTIONS
 
 try:
     WKHTMLTOPDF = settings.WKHTMLTOPDF_CMD
@@ -23,12 +24,27 @@ def render_to_tmp_file(template_name, context):
     tmp.close()
     return name
 
+def parse_options(options, context):
+    files_to_remove = []
+    opts = []
+    for opt in options:
+        if opt in OPTIONS['no_arguments']:
+            opts.extend(['--' + opt ])
+        elif opt in OPTIONS['one_argument']:
+            opts.extend(['--' + opt, options[opt]])
+        elif opt in OPTIONS['two_arguments']:
+            opts.extend(['--' + opt, options[opt][0], options[opt][1]])
+        elif opt in OPTIONS['template_needed']:
+            template = render_to_tmp_file(options[opt], context)
+            opts.extend(['--' + opt, template])
+            files_to_remove.append(template)
+
+    return opts, files_to_remove
+
 def generate_pdf(template_name, file_object=None, context=None, options=None):
     """
     Uses wkhtmltopdf to render a PDF to the passed file_object, from the
-    given template name. Optionally take an options dictionary which supports
-    only header / footer templates to be repeated on each pdf page, page margins
-    and header / footer spacing.
+    given template name. Optionally take an options dictionary.
 
     This returns the passed-in file object, filled with the actual PDF data.
     In case the passed in file object is none, it will return a StringIO instance.
@@ -43,24 +59,7 @@ def generate_pdf(template_name, file_object=None, context=None, options=None):
     if options is None:
         options = {}
 
-    opts = []
-    files_to_remove = []
-    for opt in options:
-        if opt in ('header-html', 'footer-html'):
-            if opt == 'header-html':
-                header_template = render_to_tmp_file(options[opt], context)
-                opts.extend(['--' + opt, header_template])
-                files_to_remove.append(header_template)
-            elif opt == 'footer-html':
-                footer_template = render_to_tmp_file(options[opt], context)
-                opts.extend(['--' + opt, footer_template])
-                files_to_remove.append(footer_template)
-
-        if opt in ('margin-top', 'margin-bottom', 'margin-left', 'margin-right'):
-            opts.extend(['--' + opt , options[opt]])
-
-        if opt in ('header-spacing', 'footer-spacing'):
-            opts.extend(['--' + opt, options[opt]])
+    opts, files_to_remove = parse_options(options, context)
 
     cmd = [WKHTMLTOPDF] + opts + ['-', '-']
     pdf_as_string = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(input=html)[0]
